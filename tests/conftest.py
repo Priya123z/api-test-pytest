@@ -9,6 +9,10 @@ def api() -> APIClient:
 
 @pytest.fixture(scope="session")
 def auth_token(api: APIClient) -> str:
-    resp = api.post("/api/login", {"email": "eve.holt@reqres.in", "password": "cityslicka"})
+    resp = api.post("/auth/login", {
+        "username": "emilys",
+        "password": "emilyspass",
+        "expiresInMins": 30,
+    })
     assert resp.status_code == 200
-    return resp.json()["token"]
+    return resp.json()["accessToken"]

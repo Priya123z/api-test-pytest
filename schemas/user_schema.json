@@ -2,13 +2,11 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "User",
   "type": "object",
-  "required": ["id", "email", "first_name", "last_name", "avatar"],
+  "required": ["id", "firstName", "lastName", "email"],
   "properties": {
-    "id":         { "type": "integer" },
-    "email":      { "type": "string" },
-    "first_name": { "type": "string", "minLength": 1 },
-    "last_name":  { "type": "string", "minLength": 1 },
-    "avatar":     { "type": "string" }
-  },
-  "additionalProperties": false
+    "id":        { "type": "integer", "minimum": 1 },
+    "firstName": { "type": "string", "minLength": 1 },
+    "lastName":  { "type": "string", "minLength": 1 },
+    "email":     { "type": "string" }
+  }
 }

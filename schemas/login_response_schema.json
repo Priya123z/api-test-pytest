@@ -2,9 +2,11 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "LoginResponse",
   "type": "object",
-  "required": ["token"],
+  "required": ["accessToken"],
   "properties": {
-    "token": { "type": "string", "minLength": 1 }
-  },
-  "additionalProperties": false
+    "accessToken":  { "type": "string", "minLength": 1 },
+    "refreshToken": { "type": "string" },
+    "id":           { "type": "integer" },
+    "username":     { "type": "string" }
+  }
 }

@@ -2,11 +2,12 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "CreateUserResponse",
   "type": "object",
-  "required": ["name", "job", "id", "createdAt"],
+  "required": ["id", "firstName", "lastName"],
   "properties": {
-    "name":      { "type": "string" },
-    "job":       { "type": "string" },
-    "id":        { "type": "string" },
-    "createdAt": { "type": "string" }
+    "id":        { "type": "integer" },
+    "firstName": { "type": "string" },
+    "lastName":  { "type": "string" },
+    "email":     { "type": "string" },
+    "age":       { "type": "integer" }
   }
 }

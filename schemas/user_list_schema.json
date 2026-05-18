@@ -2,26 +2,23 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "UserList",
   "type": "object",
-  "required": ["page", "per_page", "total", "total_pages", "data"],
+  "required": ["users", "total", "skip", "limit"],
   "properties": {
-    "page":        { "type": "integer" },
-    "per_page":    { "type": "integer" },
-    "total":       { "type": "integer" },
-    "total_pages": { "type": "integer" },
-    "data": {
+    "total": { "type": "integer" },
+    "skip":  { "type": "integer" },
+    "limit": { "type": "integer" },
+    "users": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "email", "first_name", "last_name", "avatar"],
+        "required": ["id", "firstName", "lastName", "email"],
         "properties": {
-          "id":         { "type": "integer" },
-          "email":      { "type": "string" },
-          "first_name": { "type": "string" },
-          "last_name":  { "type": "string" },
-          "avatar":     { "type": "string" }
+          "id":        { "type": "integer" },
+          "firstName": { "type": "string" },
+          "lastName":  { "type": "string" },
+          "email":     { "type": "string" }
         }
       }
-    },
-    "support": { "type": "object" }
+    }
   }
 }

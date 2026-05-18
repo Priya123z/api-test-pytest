@@ -13,37 +13,34 @@ def load_schema(name: str) -> dict:
 
 class TestCreateUser:
     def test_create_user_returns_201(self, api):
-        resp = api.post("/api/users", {"name": "Priya", "job": "QA Engineer"})
+        resp = api.post("/users/add", {"firstName": "Priya", "lastName": "Bhagoriya", "email": "priya@test.com", "age": 28})
         assert resp.status_code == 201
 
     def test_create_user_response_matches_schema(self, api):
-        resp = api.post("/api/users", {"name": "Priya", "job": "QA Engineer"})
+        resp = api.post("/users/add", {"firstName": "Priya", "lastName": "Bhagoriya", "email": "priya@test.com", "age": 28})
         schema = load_schema("create_user_response_schema.json")
         jsonschema.validate(instance=resp.json(), schema=schema)
 
     def test_create_user_echoes_submitted_data(self, api):
-        payload = {"name": "Priya Bhagoriya", "job": "SDET"}
-        resp = api.post("/api/users", payload)
+        payload = {"firstName": "Priya", "lastName": "Bhagoriya", "email": "priya@test.com", "age": 28}
+        resp = api.post("/users/add", payload)
         body = resp.json()
-        assert body["name"] == payload["name"]
-        assert body["job"] == payload["job"]
+        assert body["firstName"] == payload["firstName"]
+        assert body["lastName"] == payload["lastName"]
+        assert body["email"] == payload["email"]
 
     def test_create_user_returns_generated_id(self, api):
-        resp = api.post("/api/users", {"name": "Test", "job": "Tester"})
+        resp = api.post("/users/add", {"firstName": "Test", "lastName": "User", "age": 25})
         assert "id" in resp.json()
-        assert len(resp.json()["id"]) > 0
+        assert isinstance(resp.json()["id"], int)
 
-    def test_create_user_returns_timestamp(self, api):
-        resp = api.post("/api/users", {"name": "Test", "job": "Tester"})
-        assert "createdAt" in resp.json()
-
-    @pytest.mark.parametrize("name,job", [
-        ("Alice", "Developer"),
-        ("Bob", "Designer"),
-        ("Carol", "QA Lead"),
+    @pytest.mark.parametrize("first,last,email", [
+        ("Alice", "Dev", "alice@test.com"),
+        ("Bob", "Design", "bob@test.com"),
+        ("Carol", "QA", "carol@test.com"),
     ])
-    def test_create_multiple_users_parametrized(self, api, name, job):
-        resp = api.post("/api/users", {"name": name, "job": job})
+    def test_create_multiple_users_parametrized(self, api, first, last, email):
+        resp = api.post("/users/add", {"firstName": first, "lastName": last, "email": email, "age": 30})
         assert resp.status_code == 201
-        assert resp.json()["name"] == name
-        assert resp.json()["job"] == job
+        assert resp.json()["firstName"] == first
+        assert resp.json()["lastName"] == last
