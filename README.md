@@ -1,54 +1,71 @@
 # REST API Test Suite
 
-A Pytest-based REST API test framework demonstrating code-first API testing with JSON Schema validation, environment-aware fixtures, and CI/CD integration. Tests target the [DummyJSON](https://dummyjson.com) public API across user CRUD operations and authentication flows. Designed to show the step senior QA engineers take from Postman collections to version-controlled, CI-runnable tests.
+43 Pytest tests over a REST API's CRUD and auth flows, with every response
+validated against a JSON Schema, published from CI on every commit.
+
+[**Open the live report**](https://priya123z.github.io/api-test-pytest/) — the real thing, not a screenshot.
 
 [![API Tests](https://github.com/Priya123z/api-test-pytest/actions/workflows/api-tests.yml/badge.svg)](https://github.com/Priya123z/api-test-pytest/actions/workflows/api-tests.yml)
-![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)
-![Tests](https://img.shields.io/badge/tests-43-brightgreen.svg)
+![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)
+![Tests](https://img.shields.io/badge/tests-43-0a6e4e.svg)
+
+Tests run against [DummyJSON](https://dummyjson.com), a free public API, so
+there is nothing to sign up for and nothing to configure. Point `BASE_URL` at
+your own service and the same structure works.
 
 ---
 
-## What it tests
+## When you would reach for this
 
-| Module | Tests | What's covered |
-|--------|-------|----------------|
-| GET users | 16 | List (paginated), single user, 404, schema validation, response time SLA, parametrized IDs |
-| POST users | 7 | Create (201), schema validation, echoed payload, generated ID, parametrized multi-user |
-| PUT / PATCH / DELETE | 10 | Full update, partial update, ID preserved, `isDeleted` flag, parametrized deletes |
-| Auth | 10 | Valid login (200), access token, schema, missing fields (400), invalid creds (400), parametrized error matrix |
+This is a template for the step between a Postman collection and a suite the
+build actually depends on.
+
+- **You have API tests in Postman and want them in the repo.** This is what that
+  looks like: same requests, but version-controlled, reviewable in a pull
+  request, and running on every commit without anyone pressing Send.
+- **You need to know when a backend team changes a response shape.** That is
+  what the schema layer is for, and it is the reason to prefer this over a
+  status-code check. See below.
+- **You are starting an API suite and want a layout that will not need
+  rewriting.** Client wrapper, env config, schemas as separate files, fixtures
+  for anything expensive. Four directories, nothing clever.
+- **You want a worked example of publishing test results somewhere people will
+  read them.** CI writes an HTML report to GitHub Pages and comments the summary
+  on the pull request.
+
+Where **not** to use it as-is: it has no database setup or teardown, and it
+assumes the API under test is reachable and idempotent enough that tests can run
+in any order. Real services usually need seeded data, which is a fixture
+concern this deliberately does not solve for you.
+
+---
+
+## What it covers
+
+| Module | Tests | Covered |
+|---|---|---|
+| GET users | 16 | Paginated list, single user, 404, schema validation, response-time budget, parametrized IDs |
+| POST users | 7 | Create returns 201, schema, payload echoed back, generated id, parametrized multi-user |
+| PUT / PATCH / DELETE | 10 | Full update, partial update, id preserved, `isDeleted` flag, parametrized deletes |
+| Auth | 10 | Valid login, access token present, schema, missing fields → 400, invalid credentials → 400 |
 | **Total** | **43** | |
 
 ---
 
-## Why JSON Schema validation matters
+## The point of the schema layer
 
-Status code + response time is table stakes. Schema validation catches **contract breaks** — when a backend team renames `firstName` to `first_name`, a status-200 test still passes. Schema tests don't. Every GET response in this suite is validated against a JSON Schema before the test is marked green. The schemas live in `schemas/` alongside the tests so they version-control with the contract they're testing.
+Status code and response time are table stakes. Schema validation is what
+catches a **contract break**.
 
----
+When a backend team renames `firstName` to `first_name`, a test that asserts
+`response.status_code == 200` still passes. Your suite stays green and the
+mobile client breaks in production. A schema test fails on the commit that did
+it.
 
-## Project structure
-
-```
-api-test-pytest/
-├── tests/
-│   ├── conftest.py             # APIClient + auth_token fixtures
-│   ├── test_users_get.py       # GET tests with schema validation + SLA
-│   ├── test_users_post.py      # POST (create) tests
-│   ├── test_users_put_delete.py # PUT, PATCH, DELETE tests
-│   └── test_auth.py            # Auth login tests (valid, missing fields, invalid creds)
-├── utils/
-│   ├── api_client.py           # Thin requests wrapper (session, headers, timeout)
-│   └── env.py                  # Loads BASE_URL + DEFAULT_TIMEOUT from .env
-├── schemas/
-│   ├── user_schema.json               # Single user contract
-│   ├── user_list_schema.json          # Paginated user list contract
-│   ├── login_response_schema.json     # Auth response contract (accessToken)
-│   └── create_user_response_schema.json  # Create user response contract
-├── .env.example
-├── pytest.ini
-├── requirements.txt
-└── .github/workflows/api-tests.yml
-```
+So every GET response here is validated against a JSON Schema before the test
+goes green, and the schemas live in `schemas/` as their own files rather than as
+assertions buried in test code — they are the contract, and they belong under
+version control next to it where you can diff them.
 
 ---
 
@@ -61,59 +78,99 @@ cd api-test-pytest
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-pytest tests/ -v
+pytest
 ```
 
-No API key or sign-up needed — [DummyJSON](https://dummyjson.com) is a free public test API.
+No key, no sign-up, no `.env` needed to get started. Last local run:
+**43 passed in 13.1s**.
 
----
-
-## Running specific suites
+### Running a subset
 
 ```bash
-# Run a single test file
+pytest -m smoke          # 8 tests, the critical path
+pytest -m auth           # 10 tests
+pytest -m users          # 33 tests
+pytest -m "not smoke"    # everything else
 pytest tests/test_auth.py -v
-pytest tests/test_users_get.py -v
-
-# Run by marker
-pytest -m smoke -v
-pytest -m auth -v
-
-# Run against a different base URL (e.g., your own staging server)
-BASE_URL=https://staging.myapp.com pytest tests/ -v
 ```
 
----
+Every marker in `pytest.ini` is used by at least one test, so none of these
+commands collects zero. That sounds obvious; it was not true before — the
+README advertised `-m regression` and nothing carried the marker.
 
-## Generate HTML report
+### Against your own service
 
 ```bash
-pytest tests/ --html=report.html --self-contained-html
-# Open report.html in a browser
+BASE_URL=https://staging.myapp.com pytest
+```
+
+### A local HTML report
+
+```bash
+pytest --html=report.html --self-contained-html
 ```
 
 ---
 
-## Test design highlights
+## Design notes
 
-- **Fixtures with session scope** — the `APIClient` and `auth_token` are created once per test run, not once per test — saves repeated login round-trips
-- **Parametrized tests** — multi-user creation and delete are expressed as one test method with multiple parameter sets, not copy-pasted tests
-- **Response time SLA** — GET /users asserts it completes in under 2 seconds; catches regressions before monitoring does
-- **Contract-first schema** — JSON Schemas in `schemas/` are the source of truth for response shape, not the test code itself
+- **Session-scoped fixtures.** `APIClient` and `auth_token` are built once per
+  run, not once per test, so the suite does not log in forty-three times.
+- **Parametrized rather than copy-pasted.** Multi-user create and delete are one
+  test method with several parameter sets.
+- **A retry adapter on the client.** The API under test is a shared public
+  service. A 429 from a busy CI runner is a fact of the environment, not a
+  defect, so 429 and 5xx are retried with backoff. 4xx is never retried, because
+  the negative tests assert on those.
+- **`load_schema()` lives in `conftest.py`.** It was copy-pasted into four test
+  files, which meant four places to change when the schema directory moved.
+- **A response-time assertion with a realistic budget.** It used to be a hard
+  two seconds, which flakes on a shared runner for reasons that have nothing to
+  do with the API.
 
 ---
 
-## CI/CD
+## CI
 
-GitHub Actions runs the full 43-test suite on every push and pull request to `main`, generating an HTML report artifact (14-day retention).
+GitHub Actions runs all 43 tests on every push and pull request, and again
+nightly on a cron. The nightly run is the useful one: it catches the upstream
+API changing shape on a day when nobody pushed anything, which is exactly the
+failure a suite like this exists to find.
 
-```yaml
-# .github/workflows/api-tests.yml
-pytest tests/ --html=api-test-report.html --self-contained-html -v
+Each run:
+
+- writes an HTML report and **publishes it to GitHub Pages**, so the latest
+  result is always at a stable URL rather than inside an artifact zip that
+  expires
+- posts a pass/fail summary as a **pull request comment**, updating the same
+  comment instead of adding a new one each push
+- publishes per-PR reports under `pr-<number>/`
+
+No secrets or environment variables are needed — DummyJSON needs no key.
+
+---
+
+## Layout
+
+```
+api-test-pytest/
+|- tests/
+|  |- conftest.py               APIClient, auth_token and load_schema fixtures
+|  |- test_users_get.py         GET, with schema validation and a time budget
+|  |- test_users_post.py        create
+|  |- test_users_put_delete.py  update, partial update, delete
+|  '- test_auth.py              login: valid, missing fields, bad credentials
+|- utils/
+|  |- api_client.py             requests session with retry and timeout
+|  '- env.py                    BASE_URL and DEFAULT_TIMEOUT from .env
+|- schemas/
+|  |- user_schema.json
+|  |- user_list_schema.json
+|  |- login_response_schema.json
+|  '- create_user_response_schema.json
+|- .github/workflows/api-tests.yml
+|- pytest.ini
+'- requirements.txt
 ```
 
-No secrets or environment variables are needed — DummyJSON requires no API key.
-
----
-
-Built by Priya Bhagoriya | [LinkedIn](https://linkedin.com/in/priya-bhagoriya)
+MIT. Built by Priya Bhagoriya — [portfolio](https://priya123z.github.io/) · [LinkedIn](https://linkedin.com/in/priya-bhagoriya)
