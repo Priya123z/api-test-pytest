@@ -1,4 +1,7 @@
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
 from utils.env import BASE_URL, DEFAULT_TIMEOUT
 
 
@@ -8,6 +11,22 @@ class APIClient:
         self.session = requests.Session()
         self.session.headers.update({"Content-Type": "application/json"})
         self.timeout = DEFAULT_TIMEOUT
+        self._retry_on_transient_failures()
+
+    def _retry_on_transient_failures(self):
+        # The suite runs against a public API from a shared CI runner, so a rate limit
+        # or a 502 is a fact of life rather than a defect in the code under test.
+        # 4xx responses are never retried; those are the results being asserted on.
+        retry = Retry(
+            total=3,
+            backoff_factor=0.5,
+            status_forcelist=[429, 500, 502, 503, 504],
+            allowed_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+            raise_on_status=False,
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        self.session.mount("https://", adapter)
+        self.session.mount("http://", adapter)
 
     def get(self, endpoint: str, params: dict = None) -> requests.Response:
         return self.session.get(

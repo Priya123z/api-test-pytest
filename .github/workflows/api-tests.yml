@@ -5,6 +5,19 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+  schedule:
+    # The API under test is a public service. A nightly run catches it changing
+    # shape underneath us rather than finding out during a code change.
+    - cron: "0 6 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: api-tests-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -13,26 +26,72 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: "pip"
 
       - name: Install dependencies
         run: pip install -r requirements.txt
 
       - name: Run API tests
+        id: tests
+        continue-on-error: true
         run: |
+          mkdir -p site
           pytest tests/ \
-            --html=api-test-report.html \
+            --html=site/index.html \
             --self-contained-html \
+            --junitxml=junit.xml \
             -v
 
-      - name: Upload HTML report
-        uses: actions/upload-artifact@v4
+      - name: Summarise results
         if: always()
+        run: python3 .github/scripts/summarise.py junit.xml summary.md
+
+      - name: Publish report
+        if: always()
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          name: api-test-report
-          path: api-test-report.html
-          retention-days: 14
+          github_token: ${{ github.token }}
+          publish_dir: site
+          destination_dir: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || '.' }}
+          keep_files: true
+          user_name: Priya Bhagoriya
+          user_email: prbhagoriya20@gmail.com
+          commit_message: "Publish report for ${{ github.sha }}"
+
+      - name: Comment on pull request
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        env:
+          REPORT_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/pr-${{ github.event.number }}/
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('summary.md', 'utf8')
+              + `\n\n[Open the full report](${process.env.REPORT_URL})\n`
+              + '\n<!-- api-test-report -->';
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner, repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes('<!-- api-test-report -->'));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                comment_id: existing.id, body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: context.issue.number, body,
+              });
+            }
+
+      - name: Fail if tests failed
+        if: steps.tests.outcome == 'failure'
+        run: exit 1
