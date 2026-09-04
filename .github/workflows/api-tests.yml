@@ -59,7 +59,7 @@ jobs:
           destination_dir: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || '.' }}
           keep_files: true
           user_name: Priya Bhagoriya
-          user_email: prbhagoriya20@gmail.com
+          user_email: 83332745+Priya123z@users.noreply.github.com
           commit_message: "Publish report for ${{ github.sha }}"
 
       - name: Comment on pull request
