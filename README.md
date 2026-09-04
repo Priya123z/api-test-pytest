@@ -3,7 +3,7 @@
 43 Pytest tests over a REST API's CRUD and auth flows, with every response
 validated against a JSON Schema, published from CI on every commit.
 
-[**Open the live report**](https://priya123z.github.io/api-test-pytest/)  the real thing, not a screenshot.
+[**Open the live report**](https://priya123z.github.io/api-test-pytest/): the real thing, not a screenshot.
 
 [![API Tests](https://github.com/Priya123z/api-test-pytest/actions/workflows/api-tests.yml/badge.svg)](https://github.com/Priya123z/api-test-pytest/actions/workflows/api-tests.yml)
 ![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)
@@ -64,8 +64,8 @@ it.
 
 So every GET response here is validated against a JSON Schema before the test
 goes green, and the schemas live in `schemas/` as their own files rather than as
-assertions buried in test code  they are the contract, and they belong under
-version control next to it where you can diff them.
+assertions buried in test code. They are the contract, so they belong under
+version control next to it, where you can diff them.
 
 ---
 
@@ -95,7 +95,7 @@ pytest tests/test_auth.py -v
 ```
 
 Every marker in `pytest.ini` is used by at least one test, so none of these
-commands collects zero. That sounds obvious; it was not true before  the
+commands collects zero. That sounds obvious, and it was not true before: the
 README advertised `-m regression` and nothing carried the marker.
 
 ### Against your own service
@@ -146,7 +146,7 @@ Each run:
   comment instead of adding a new one each push
 - publishes per-PR reports under `pr-<number>/`
 
-No secrets or environment variables are needed  DummyJSON needs no key.
+No secrets or environment variables are needed, because DummyJSON needs no key.
 
 ---
 
@@ -173,4 +173,4 @@ api-test-pytest/
 '- requirements.txt
 ```
 
-MIT. Built by Priya Bhagoriya  [portfolio](https://priya123z.github.io/) · [LinkedIn](https://linkedin.com/in/priya-bhagoriya)
+MIT. Built by Priya Bhagoriya: [portfolio](https://priya123z.github.io/) · [LinkedIn](https://linkedin.com/in/priya-bhagoriya)

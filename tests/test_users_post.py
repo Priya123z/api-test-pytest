@@ -1,9 +1,5 @@
-import json
-from pathlib import Path
 import jsonschema
 import pytest
-
-
 
 class TestCreateUser:
     @pytest.mark.users

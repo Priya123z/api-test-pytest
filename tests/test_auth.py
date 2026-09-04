@@ -1,9 +1,5 @@
-import json
-from pathlib import Path
 import jsonschema
 import pytest
-
-
 
 LOGIN_URL = "/auth/login"
 VALID_CREDS = {"username": "emilys", "password": "emilyspass", "expiresInMins": 30}

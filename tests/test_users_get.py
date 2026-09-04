@@ -1,9 +1,5 @@
-import json
-from pathlib import Path
 import jsonschema
 import pytest
-
-
 
 RESPONSE_TIME_CEILING_SECONDS = 5.0
 
