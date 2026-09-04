@@ -1,4 +1,4 @@
-# DEEP_DIVE.md — api-test-pytest
+# DEEP_DIVE.md  api-test-pytest
 
 > A professional REST API test framework using **Pytest + Requests**, targeting the [DummyJSON public API](https://dummyjson.com).
 
@@ -6,72 +6,72 @@
 
 ## Table of Contents
 
-1. [What It Is — Three Levels of Understanding](#1-what-it-is--three-levels-of-understanding)
+1. [What It Is  Three Levels of Understanding](#1-what-it-is--three-levels-of-understanding)
 2. [Architecture Diagram](#2-architecture-diagram)
 3. [How to Run](#3-how-to-run)
 4. [How to Validate](#4-how-to-validate)
-5. [Interview Q&A — 25 Questions](#5-interview-qa--25-questions)
+5. [Interview Q&A  25 Questions](#5-interview-qa--25-questions)
 
 ---
 
-## 1. What It Is — Three Levels of Understanding
+## 1. What It Is  Three Levels of Understanding
 
-### Level 1 — Simple
+### Level 1  Simple
 
-This project is a collection of automated tests that check whether a web API behaves correctly. It sends HTTP requests (GET, POST, PUT, PATCH, DELETE) to a free public API called DummyJSON and verifies that the responses come back with the right data, the right status code, and the right structure — all without needing a browser.
+This project is a collection of automated tests that check whether a web API behaves correctly. It sends HTTP requests (GET, POST, PUT, PATCH, DELETE) to a free public API called DummyJSON and verifies that the responses come back with the right data, the right status code, and the right structure  all without needing a browser.
 
 Think of it as a robot that repeatedly calls an API and checks: "Did it return what it was supposed to?" If something breaks in the API, the tests fail and alert you immediately.
 
 ---
 
-### Level 2 — Intermediate
+### Level 2  Intermediate
 
 The project has four test files, each targeting a different concern:
 
 | File | Coverage |
 |---|---|
-| `tests/test_users_get.py` | 16 tests — status 200, response time SLA (<2s), JSON Schema validation, pagination (limit/skip), single user fetch, 404 handling, parametrized IDs 1–6 |
-| `tests/test_users_post.py` | 7 tests — POST /users/add returns 201, schema validation, payload echo (firstName/lastName/email), integer ID in response, parametrized across 3 users |
-| `tests/test_users_put_delete.py` | 10 tests — PUT full update (200 + echoed data + preserved ID), PATCH partial update, DELETE returns 200 + `isDeleted: true`, parametrized delete matrix |
-| `tests/test_auth.py` | 10 tests — valid login returns 200 + accessToken, schema validation, missing password → 400, invalid credentials → 400, parametrized error scenarios |
+| `tests/test_users_get.py` | 16 tests  status 200, response time SLA (<2s), JSON Schema validation, pagination (limit/skip), single user fetch, 404 handling, parametrized IDs 1–6 |
+| `tests/test_users_post.py` | 7 tests  POST /users/add returns 201, schema validation, payload echo (firstName/lastName/email), integer ID in response, parametrized across 3 users |
+| `tests/test_users_put_delete.py` | 10 tests  PUT full update (200 + echoed data + preserved ID), PATCH partial update, DELETE returns 200 + `isDeleted: true`, parametrized delete matrix |
+| `tests/test_auth.py` | 10 tests  valid login returns 200 + accessToken, schema validation, missing password → 400, invalid credentials → 400, parametrized error scenarios |
 
 **How fixtures chain together:**
 
 `conftest.py` defines two session-scoped fixtures:
 
-1. `api` — creates one `APIClient` instance for the entire test run. Every test that requests the `api` fixture receives the same shared object.
-2. `auth_token` — depends on `api`. It calls `/auth/login` once, extracts the `accessToken`, and caches it. All auth tests share this single token.
+1. `api`  creates one `APIClient` instance for the entire test run. Every test that requests the `api` fixture receives the same shared object.
+2. `auth_token`  depends on `api`. It calls `/auth/login` once, extracts the `accessToken`, and caches it. All auth tests share this single token.
 
 This chain means: `auth_token` → uses `api` → uses `APIClient` → wraps `requests.Session`.
 
 **JSON Schema validation** is applied across all four test files using four JSON Schema files in the `schemas/` directory:
 
-- `user_schema.json` — validates a single user object
-- `user_list_schema.json` — validates the paginated list response
-- `login_response_schema.json` — validates the auth response
-- `create_user_response_schema.json` — validates the POST response
+- `user_schema.json`  validates a single user object
+- `user_list_schema.json`  validates the paginated list response
+- `login_response_schema.json`  validates the auth response
+- `create_user_response_schema.json`  validates the POST response
 
 ---
 
-### Level 3 — Advanced
+### Level 3  Advanced
 
 **Why JSON Schema over manual field assertion:**
 
-Manual assertions check individual fields: `assert resp["id"] == 1`. This is fragile and incomplete — if the API silently renames `firstName` to `first_name`, or removes the `email` field, a manual assertion on a different field won't catch it. JSON Schema describes the *contract* of the entire response object. A single `jsonschema.validate(response_body, schema)` call verifies field names, types, required fields, and structure all at once. It also documents the expected shape of every response in a machine-readable, version-controllable file.
+Manual assertions check individual fields: `assert resp["id"] == 1`. This is fragile and incomplete  if the API silently renames `firstName` to `first_name`, or removes the `email` field, a manual assertion on a different field won't catch it. JSON Schema describes the *contract* of the entire response object. A single `jsonschema.validate(response_body, schema)` call verifies field names, types, required fields, and structure all at once. It also documents the expected shape of every response in a machine-readable, version-controllable file.
 
 **Session scope strategy:**
 
-Pytest fixtures can have four scopes: `function` (default), `class`, `module`, and `session`. Using `scope="session"` means the fixture is created once for the entire test run and destroyed at the very end. For the `api` fixture, this avoids creating 43 separate `requests.Session` objects. For `auth_token`, this avoids 43 separate login API calls — which would be slow, wasteful, and potentially rate-limited.
+Pytest fixtures can have four scopes: `function` (default), `class`, `module`, and `session`. Using `scope="session"` means the fixture is created once for the entire test run and destroyed at the very end. For the `api` fixture, this avoids creating 43 separate `requests.Session` objects. For `auth_token`, this avoids 43 separate login API calls  which would be slow, wasteful, and potentially rate-limited.
 
 The tradeoff: session-scoped fixtures are shared state, so tests must not mutate the `api` object in a way that affects other tests. This framework avoids that by treating `api` as a stateless transport layer.
 
 **Fixture dependency injection:**
 
-Pytest's fixture system is a dependency injection framework. When a test function declares `def test_something(api, auth_token)`, pytest resolves the dependency graph, creates `api` first (because `auth_token` depends on it), and injects both. This is the Inversion of Control pattern — tests declare *what* they need, not *how* to create it.
+Pytest's fixture system is a dependency injection framework. When a test function declares `def test_something(api, auth_token)`, pytest resolves the dependency graph, creates `api` first (because `auth_token` depends on it), and injects both. This is the Inversion of Control pattern  tests declare *what* they need, not *how* to create it.
 
 **Why requests over httpx:**
 
-`requests` is the de facto standard for Python HTTP clients with a massive ecosystem, battle-tested reliability, and familiar API. `httpx` is its modern successor with async support, but async is not needed here — these are synchronous integration tests where each request must complete before the assertion. `requests.Session` provides connection pooling, shared headers, and timeout config in a simple interface. The added complexity of `asyncio` + `httpx` brings no benefit for this use case.
+`requests` is the de facto standard for Python HTTP clients with a massive ecosystem, battle-tested reliability, and familiar API. `httpx` is its modern successor with async support, but async is not needed here  these are synchronous integration tests where each request must complete before the assertion. `requests.Session` provides connection pooling, shared headers, and timeout config in a simple interface. The added complexity of `asyncio` + `httpx` brings no benefit for this use case.
 
 ---
 
@@ -274,21 +274,21 @@ After running `pytest tests/ --html=report.html --self-contained-html`:
 2. The summary table shows: Total / Passed / Failed / Errors / Skipped
 3. Click any failed test row to expand the full traceback
 4. The "Environment" section shows Python version, pytest version, and platform
-5. Each test shows its duration — useful for identifying slow tests
+5. Each test shows its duration  useful for identifying slow tests
 
 The HTML report is self-contained (no external dependencies) and can be shared with teammates or attached to a CI artifact.
 
 ---
 
-## 5. Interview Q&A — 25 Questions
+## 5. Interview Q&A  25 Questions
 
 ---
 
 ### Q1. What is API testing and why is it important?
 
-**API testing** is the practice of sending HTTP requests to an application's interface layer and verifying the responses — checking status codes, response bodies, headers, response time, and data contracts — without going through a UI.
+**API testing** is the practice of sending HTTP requests to an application's interface layer and verifying the responses  checking status codes, response bodies, headers, response time, and data contracts  without going through a UI.
 
-It matters for several reasons. First, APIs are the contract between the backend and every consumer (mobile apps, web frontends, third-party integrations). A broken API breaks everything downstream. Second, API tests are faster than UI tests because they bypass the browser rendering layer. Third, they catch regressions early in CI before code reaches production. Fourth, APIs expose business logic directly — you can test edge cases that are hard to trigger through a UI.
+It matters for several reasons. First, APIs are the contract between the backend and every consumer (mobile apps, web frontends, third-party integrations). A broken API breaks everything downstream. Second, API tests are faster than UI tests because they bypass the browser rendering layer. Third, they catch regressions early in CI before code reaches production. Fourth, APIs expose business logic directly  you can test edge cases that are hard to trigger through a UI.
 
 ---
 
@@ -317,7 +317,7 @@ A **status code** (200, 201, 404) tells you whether the request succeeded or fai
 - Each field has the correct type (`id` is an integer, not a string)
 - No required field has been silently removed or renamed
 
-Example: if a developer renames `firstName` to `first_name` in the backend, every `assert response["firstName"]` would raise a `KeyError`. But with JSON Schema, a single validate call catches the contract break and produces a clear error: `'firstName' is a required property`. This is called **contract testing** — verifying that the API still honors the agreed-upon shape.
+Example: if a developer renames `firstName` to `first_name` in the backend, every `assert response["firstName"]` would raise a `KeyError`. But with JSON Schema, a single validate call catches the contract break and produces a clear error: `'firstName' is a required property`. This is called **contract testing**  verifying that the API still honors the agreed-upon shape.
 
 ---
 
@@ -340,7 +340,7 @@ Choosing the right scope is a performance and correctness tradeoff: broad scope 
 
 ### Q5. Why use session scope for the APIClient fixture?
 
-`APIClient` wraps a `requests.Session`. Creating a session involves initializing connection pools, setting headers, and configuring timeouts. There is no reason to recreate this object 43 times — one instance can serve all tests safely because `APIClient` is stateless (it does not store response data between calls).
+`APIClient` wraps a `requests.Session`. Creating a session involves initializing connection pools, setting headers, and configuring timeouts. There is no reason to recreate this object 43 times  one instance can serve all tests safely because `APIClient` is stateless (it does not store response data between calls).
 
 Using `scope="session"` means one `requests.Session` is created once and reused. This:
 - Allows TCP connection reuse via HTTP keep-alive (faster requests)
@@ -351,10 +351,10 @@ Using `scope="session"` means one `requests.Session` is created once and reused.
 
 ### Q6. What is requests.Session and why is it better than requests.get()?
 
-`requests.get()` creates a new connection for every call and discards it after. `requests.Session` maintains a connection pool and reuses existing TCP connections via HTTP keep-alive — subsequent requests to the same host are significantly faster.
+`requests.get()` creates a new connection for every call and discards it after. `requests.Session` maintains a connection pool and reuses existing TCP connections via HTTP keep-alive  subsequent requests to the same host are significantly faster.
 
 Additionally, a `Session` lets you:
-- Set default headers once (`session.headers.update(...)`) — applied to every request
+- Set default headers once (`session.headers.update(...)`)  applied to every request
 - Set default timeouts
 - Share cookies across requests (important for auth workflows)
 - Configure retry adapters
@@ -367,9 +367,9 @@ In this project, `APIClient` sets `Content-Type: application/json` once on the s
 
 `auth_token` is a session-scoped fixture defined in `conftest.py`. It calls `POST /auth/login` with valid credentials once, extracts the `accessToken` from the response, and caches it. Every test that needs a token receives the same cached value.
 
-Without session scope, `auth_token` would call `/auth/login` for every auth test — 10 separate login calls for `test_auth.py` alone, plus additional calls if other test files use the token. This is wasteful and potentially causes rate-limiting. Session scope reduces 10+ login calls to exactly 1.
+Without session scope, `auth_token` would call `/auth/login` for every auth test  10 separate login calls for `test_auth.py` alone, plus additional calls if other test files use the token. This is wasteful and potentially causes rate-limiting. Session scope reduces 10+ login calls to exactly 1.
 
-The fixture depends on the `api` fixture: `def auth_token(api)` — pytest resolves this dependency automatically.
+The fixture depends on the `api` fixture: `def auth_token(api)`  pytest resolves this dependency automatically.
 
 ---
 
@@ -405,24 +405,24 @@ In this project, parametrize is used for user IDs 1–6, creating 3 different us
 
 | Method | Semantics | Body |
 |---|---|---|
-| `PUT` | Full replacement — replace the entire resource | Must include all fields |
-| `PATCH` | Partial update — modify only specified fields | Include only changed fields |
+| `PUT` | Full replacement  replace the entire resource | Must include all fields |
+| `PATCH` | Partial update  modify only specified fields | Include only changed fields |
 
 Example: If a user has `{id, firstName, lastName, email, age}`:
-- `PUT /users/2` with `{firstName: "Jane"}` would replace the resource — `lastName`, `email`, `age` might be cleared or reset
+- `PUT /users/2` with `{firstName: "Jane"}` would replace the resource  `lastName`, `email`, `age` might be cleared or reset
 - `PATCH /users/2` with `{firstName: "Jane"}` updates only `firstName`, leaving all other fields unchanged
 
-In practice, many APIs (including DummyJSON) are lenient — their PUT also acts like PATCH. But the semantic distinction matters for API design and test design: PUT tests should verify the full response body, PATCH tests should verify only the modified field(s) changed while others are preserved.
+In practice, many APIs (including DummyJSON) are lenient  their PUT also acts like PATCH. But the semantic distinction matters for API design and test design: PUT tests should verify the full response body, PATCH tests should verify only the modified field(s) changed while others are preserved.
 
 ---
 
 ### Q10. Why does DELETE in DummyJSON return 200 with a body instead of 204?
 
 HTTP conventions say DELETE *can* return:
-- `204 No Content` — success, no body
-- `200 OK` — success, with a response body
+- `204 No Content`  success, no body
+- `200 OK`  success, with a response body
 
-DummyJSON returns `200` with `{id: 1, ..., isDeleted: true}` because it is a **mock/fake API** designed for testing and demonstration. Returning the deleted object with a confirmation flag is more useful for learning and testing — it lets you verify *which* resource was deleted and confirm the `isDeleted` flag.
+DummyJSON returns `200` with `{id: 1, ..., isDeleted: true}` because it is a **mock/fake API** designed for testing and demonstration. Returning the deleted object with a confirmation flag is more useful for learning and testing  it lets you verify *which* resource was deleted and confirm the `isDeleted` flag.
 
 In real-world APIs, both approaches are valid. `204` is more RESTfully strict. `200` with a body is more informative for clients. Testing `isDeleted: true` in the response body is a stronger assertion than just checking `status_code == 200`.
 
@@ -439,7 +439,7 @@ assert resp.elapsed.total_seconds() < 2.0
 This checks that the response arrived in under 2 seconds.
 
 Why include it:
-- Performance regressions are invisible to functional tests — an API can return correct data but take 10 seconds instead of 0.5 seconds
+- Performance regressions are invisible to functional tests  an API can return correct data but take 10 seconds instead of 0.5 seconds
 - Catching slow responses in CI prevents performance degradations from reaching production
 - It documents the expected performance contract alongside functional requirements
 
@@ -451,9 +451,9 @@ Caveat: SLA tests against external APIs (like DummyJSON) can be flaky due to net
 
 `conftest.py` is a special pytest file that is automatically discovered and loaded before any tests in the same directory (and subdirectories). It is used for:
 
-1. **Shared fixtures** — fixtures defined here are available to all test files in the same directory tree without explicit imports
-2. **Plugins and hooks** — custom pytest hooks (`pytest_runtest_makereport`, etc.)
-3. **Shared configuration** — e.g., setting up a database connection, configuring logging
+1. **Shared fixtures**  fixtures defined here are available to all test files in the same directory tree without explicit imports
+2. **Plugins and hooks**  custom pytest hooks (`pytest_runtest_makereport`, etc.)
+3. **Shared configuration**  e.g., setting up a database connection, configuring logging
 
 In this project, `conftest.py` defines `api` and `auth_token` so every test file can use them without any import statement. pytest's fixture injection discovers them by name automatically.
 
@@ -475,7 +475,7 @@ markers =
     smoke: quick sanity checks
 ```
 
-Smoke tests typically include only the most critical, fast-running checks — the ones you run on every commit to get a 30-second "is it alive?" signal before running the full regression suite.
+Smoke tests typically include only the most critical, fast-running checks  the ones you run on every commit to get a 30-second "is it alive?" signal before running the full regression suite.
 
 ---
 
@@ -522,7 +522,7 @@ print(builder.to_schema())
 
 In this project, genson could be used to:
 1. Bootstrap the initial schema files by running it against live API responses
-2. Update schemas when the API changes — generate a new schema from the updated response and diff it against the current schema
+2. Update schemas when the API changes  generate a new schema from the updated response and diff it against the current schema
 3. Add a utility script that auto-generates schemas in the `schemas/` directory
 
 ---
@@ -569,7 +569,7 @@ jsonschema.validate(body, schema)
 
 This reads the schema from a JSON file, validates all fields, types, and required properties in one call, and raises `ValidationError` with a precise message: `'email' is a required property` or `'id' is not of type 'integer'`. 
 
-The schema file is also documentation — it describes the expected API contract in a language-agnostic, shareable format. Multiple teams (frontend, backend, QA) can reference the same schema file.
+The schema file is also documentation  it describes the expected API contract in a language-agnostic, shareable format. Multiple teams (frontend, backend, QA) can reference the same schema file.
 
 ---
 
@@ -577,11 +577,11 @@ The schema file is also documentation — it describes the expected API contract
 
 External APIs introduce nondeterminism: network timeouts, transient 5xx errors, rate limits. Strategies:
 
-1. **Retry logic** — use `urllib3.util.retry.Retry` with `requests.adapters.HTTPAdapter` to automatically retry on 5xx and connection errors
-2. **pytest-rerunfailures** — add `@pytest.mark.flaky(reruns=3)` to tests that hit external APIs
-3. **Wider SLA thresholds** — use 5s instead of 2s for external APIs with variable latency
-4. **Mock for unit tests, real calls for integration tests** — use `responses` or `pytest-httpserver` to mock the API in fast unit tests, reserve real API calls for a separate integration suite
-5. **Separate CI jobs** — run flaky external-API tests on a longer schedule (nightly) rather than on every commit
+1. **Retry logic**  use `urllib3.util.retry.Retry` with `requests.adapters.HTTPAdapter` to automatically retry on 5xx and connection errors
+2. **pytest-rerunfailures**  add `@pytest.mark.flaky(reruns=3)` to tests that hit external APIs
+3. **Wider SLA thresholds**  use 5s instead of 2s for external APIs with variable latency
+4. **Mock for unit tests, real calls for integration tests**  use `responses` or `pytest-httpserver` to mock the API in fast unit tests, reserve real API calls for a separate integration suite
+5. **Separate CI jobs**  run flaky external-API tests on a longer schedule (nightly) rather than on every commit
 
 ---
 
@@ -607,11 +607,11 @@ The session-scoped fixtures and schema validation approach carry over unchanged.
 
 `pytest-html` generates a self-contained HTML file with:
 
-- **Summary bar** — counts of passed, failed, error, skipped tests
-- **Test results table** — each test with its name, duration, and pass/fail status
-- **Expandable failure details** — full traceback for any failed test, including the request/response if captured
-- **Environment section** — Python version, pytest version, OS
-- **Duration chart** — which tests are slowest
+- **Summary bar**  counts of passed, failed, error, skipped tests
+- **Test results table**  each test with its name, duration, and pass/fail status
+- **Expandable failure details**  full traceback for any failed test, including the request/response if captured
+- **Environment section**  Python version, pytest version, OS
+- **Duration chart**  which tests are slowest
 
 Usefulness:
 - Share with non-technical stakeholders (PM, developers) without needing terminal access
@@ -678,8 +678,8 @@ This tests the API's *rejection* behavior, not just its happy path. Also add a `
 
 OAuth2 adds an authorization code flow before you can get an access token. Changes needed:
 
-1. **`utils/env.py`** — add `CLIENT_ID`, `CLIENT_SECRET`, `TOKEN_URL` environment variables
-2. **`conftest.py` `auth_token` fixture** — replace the simple login call with an OAuth2 client credentials flow:
+1. **`utils/env.py`**  add `CLIENT_ID`, `CLIENT_SECRET`, `TOKEN_URL` environment variables
+2. **`conftest.py` `auth_token` fixture**  replace the simple login call with an OAuth2 client credentials flow:
 ```python
 import requests
 
@@ -690,10 +690,10 @@ resp = requests.post(TOKEN_URL, data={
 })
 return resp.json()["access_token"]
 ```
-3. **`APIClient`** — add `set_auth_token()` method and call it with the fixture token
-4. **Token refresh** — for long-running test suites, detect 401 responses and re-fetch the token
+3. **`APIClient`**  add `set_auth_token()` method and call it with the fixture token
+4. **Token refresh**  for long-running test suites, detect 401 responses and re-fetch the token
 
-For password grant (username + password OAuth2 flow), the change is minimal — replace the `POST /auth/login` call with a `POST` to the OAuth2 token endpoint with the correct `grant_type`.
+For password grant (username + password OAuth2 flow), the change is minimal  replace the `POST /auth/login` call with a `POST` to the OAuth2 token endpoint with the correct `grant_type`.
 
 ---
 
@@ -718,8 +718,8 @@ pytest tests/ -v -n auto
 
 **Considerations for this project:**
 
-- The `api` and `auth_token` fixtures are `scope="session"`. With xdist, each worker gets its own session — so `auth_token` will be created once per worker, not once globally. This means 4 workers = 4 login calls (not 43, but not 1 either).
-- Tests must be independent (no shared mutable state between tests) — this project already satisfies that requirement.
+- The `api` and `auth_token` fixtures are `scope="session"`. With xdist, each worker gets its own session  so `auth_token` will be created once per worker, not once globally. This means 4 workers = 4 login calls (not 43, but not 1 either).
+- Tests must be independent (no shared mutable state between tests)  this project already satisfies that requirement.
 - DummyJSON is an external API; parallelism will increase concurrent request rate. Ensure the API allows it.
 - Expected speedup: 43 tests across 4 workers ≈ 3× faster wall-clock time.
 
@@ -727,9 +727,9 @@ pytest tests/ -v -n auto
 
 ### Q25. What is the difference between integration tests and contract tests?
 
-**Integration tests** verify that two systems work together correctly. In this project, every test is an integration test — it sends a real HTTP request to a real API and checks the real response.
+**Integration tests** verify that two systems work together correctly. In this project, every test is an integration test  it sends a real HTTP request to a real API and checks the real response.
 
-**Contract tests** verify that the *interface agreement* (the contract) between two parties is honored, independent of the actual implementation. A contract test does not necessarily call the live API — it might mock the API and verify only that the request your code sends conforms to the contract, and that the response your code handles is properly structured.
+**Contract tests** verify that the *interface agreement* (the contract) between two parties is honored, independent of the actual implementation. A contract test does not necessarily call the live API  it might mock the API and verify only that the request your code sends conforms to the contract, and that the response your code handles is properly structured.
 
 | Dimension | Integration Test | Contract Test |
 |---|---|---|
@@ -739,9 +739,9 @@ pytest tests/ -v -n auto
 | Tool examples | Pytest + Requests | Pact, Dredd, jsonschema |
 | When it fails | API is down or wrong | Contract has changed |
 
-This project blends both: it calls the live DummyJSON API (integration) AND validates JSON Schema (contract). Adding `jsonschema.validate()` to each test makes them partial contract tests — they would catch a contract break even if the status code remained 200.
+This project blends both: it calls the live DummyJSON API (integration) AND validates JSON Schema (contract). Adding `jsonschema.validate()` to each test makes them partial contract tests  they would catch a contract break even if the status code remained 200.
 
-For full contract testing, use [Pact](https://docs.pact.io/) — it records interactions and verifies them against the provider without requiring the live API to be available in CI.
+For full contract testing, use [Pact](https://docs.pact.io/)  it records interactions and verifies them against the provider without requiring the live API to be available in CI.
 
 ---
 

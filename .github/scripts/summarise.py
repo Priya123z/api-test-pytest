@@ -56,7 +56,7 @@ def render(result):
     if result["problems"]:
         lines += ["", "**Failures**", ""]
         for name, message in result["problems"][:15]:
-            lines.append(f"- `{name}` — {message[:160]}")
+            lines.append(f"- `{name}`  {message[:160]}")
         if len(result["problems"]) > 15:
             lines.append(f"- …and {len(result['problems']) - 15} more")
 
