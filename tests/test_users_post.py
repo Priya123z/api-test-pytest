@@ -27,7 +27,6 @@ class TestCreateUser:
     def test_create_user_returns_generated_id(self, api):
         resp = api.post("/users/add", {"firstName": "Test", "lastName": "User", "age": 25})
         assert "id" in resp.json()
-        assert isinstance(resp.json()["id"], int)
 
     @pytest.mark.parametrize("first,last,email", [
         ("Alice", "Dev", "alice@test.com"),

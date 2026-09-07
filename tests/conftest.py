@@ -10,25 +10,14 @@ SCHEMAS_DIR = Path(__file__).resolve().parent.parent / "schemas"
 
 
 @pytest.fixture(scope="session")
-def api() -> APIClient:
+def api():
     return APIClient()
-
-
-@pytest.fixture(scope="session")
-def auth_token(api: APIClient) -> str:
-    resp = api.post("/auth/login", {
-        "username": "emilys",
-        "password": "emilyspass",
-        "expiresInMins": 30,
-    })
-    assert resp.status_code == 200
-    return resp.json()["accessToken"]
 
 
 @pytest.fixture(scope="session")
 def load_schema():
     """Reads a schema from schemas/. Was copy-pasted into three test modules."""
-    def _load(name: str) -> dict:
+    def _load(name):
         with open(SCHEMAS_DIR / name) as f:
             return json.load(f)
     return _load
@@ -55,7 +44,7 @@ def pytest_metadata(metadata):
     for noise in ("JAVA_HOME", "Plugins"):
         metadata.pop(noise, None)
 
-    metadata["Suite"] = "43 tests over CRUD and auth, with JSON Schema contracts"
+    metadata["Suite"] = "CRUD and auth flows, with JSON Schema contracts"
     metadata["API under test"] = os.environ.get("BASE_URL", "https://dummyjson.com")
     metadata["Repository"] = REPO_URL
 

@@ -6,8 +6,10 @@ from utils.env import BASE_URL, DEFAULT_TIMEOUT
 
 
 class APIClient:
-    def __init__(self, base_url: str = BASE_URL):
-        self.base_url = base_url
+    # BASE_URL comes from the environment, so pointing the suite at another
+    # service is `BASE_URL=... pytest` rather than a constructor argument.
+    def __init__(self):
+        self.base_url = BASE_URL
         self.session = requests.Session()
         self.session.headers.update({"Content-Type": "application/json"})
         self.timeout = DEFAULT_TIMEOUT
@@ -28,35 +30,35 @@ class APIClient:
         self.session.mount("https://", adapter)
         self.session.mount("http://", adapter)
 
-    def get(self, endpoint: str, params: dict = None) -> requests.Response:
+    def get(self, endpoint, params=None):
         return self.session.get(
             f"{self.base_url}{endpoint}",
             params=params,
             timeout=self.timeout,
         )
 
-    def post(self, endpoint: str, payload: dict = None) -> requests.Response:
+    def post(self, endpoint, payload=None):
         return self.session.post(
             f"{self.base_url}{endpoint}",
             json=payload,
             timeout=self.timeout,
         )
 
-    def put(self, endpoint: str, payload: dict = None) -> requests.Response:
+    def put(self, endpoint, payload=None):
         return self.session.put(
             f"{self.base_url}{endpoint}",
             json=payload,
             timeout=self.timeout,
         )
 
-    def patch(self, endpoint: str, payload: dict = None) -> requests.Response:
+    def patch(self, endpoint, payload=None):
         return self.session.patch(
             f"{self.base_url}{endpoint}",
             json=payload,
             timeout=self.timeout,
         )
 
-    def delete(self, endpoint: str) -> requests.Response:
+    def delete(self, endpoint):
         return self.session.delete(
             f"{self.base_url}{endpoint}",
             timeout=self.timeout,

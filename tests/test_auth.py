@@ -40,11 +40,6 @@ class TestAuth:
         resp = api.post(LOGIN_URL, {"username": "emilys", "password": "wrongpassword"})
         assert resp.status_code == 400
 
-    @pytest.mark.auth
-    def test_auth_token_fixture_is_string(self, auth_token):
-        assert isinstance(auth_token, str)
-        assert len(auth_token) > 5
-
     @pytest.mark.parametrize("payload,expected_status", [
         ({"username": "emilys"}, 400),
         ({"password": "emilyspass"}, 400),

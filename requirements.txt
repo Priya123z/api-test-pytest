@@ -1,4 +1,7 @@
 requests==2.32.3
+# Imported directly by utils/api_client.py for the retry policy, so it is
+# declared rather than left to arrive with requests.
+urllib3==2.2.2
 pytest==8.2.2
 pytest-html==4.1.1
 jsonschema==4.22.0
